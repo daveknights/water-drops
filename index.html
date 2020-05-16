@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Water Drops</title>
+  <style>* {padding: 0; margin: 0}</style>
+</head>
+  <script src="pixi/pixi.min.js"></script>
+<body>
+  <script type="text/javascript">
+      const xPosArr = [];
+      const dropsArray = [];
+      const ripples = [];
+      const Container = PIXI.Container;
+      const Sprite = PIXI.Sprite;
+      const loader = PIXI.loader;
+      const stage = new Container();
+      const bgStage = new Container();
+      const dropStage = new Container();
+
+      stage.addChild(bgStage);
+      stage.addChild(dropStage);
+
+      const renderer = PIXI.autoDetectRenderer(800, 800);
+      document.body.appendChild(renderer.view);
+
+      // Load assets
+      loader
+          .add('images/background.jpg')
+          .add("images/map.png")
+          .add('images/drop.png')
+          .load(setup);
+
+      function setup() {
+          // Background
+          const bg = new Sprite(loader.resources['images/background.jpg'].texture);
+          bg.anchor.set(0.5);
+          bg.scale.set(1.1);
+          bg.position.set(renderer.view.width/2, renderer.view.height/2);
+          bgStage.addChild(bg);
+
+          for (let i = 0; i < 20; i++) {
+              const xPos = Math.ceil((Math.random()*700) + 50);
+              // Create random drop position and push to array
+              xPosArr.push(xPos);
+              // Make drop and push to array
+              dropsArray.push(makeDrop(xPos));
+          }
+
+          let counter = 0;
+          startDrops = setInterval(() => {
+              if (counter === dropsArray.length) {
+                  clearInterval(startDrops);
+              } else {
+
+                  dropStage.addChild(dropsArray[counter]);
+                  moveDrop(dropsArray[counter], counter);
+                  counter += 1;
+              }
+          }, 1000);
+
+          gameLoop();
+      }
+
+      function makeDrop(pos) {
+          const drop = PIXI.Sprite.from('images/drop.png');
+          drop.anchor.set(0.5);
+          drop.position.set(pos, 0);
+          drop.alpha = 0.05;
+
+          return drop;
+      }
+
+      function gameLoop() {
+          requestAnimationFrame(gameLoop);
+
+          // Update ripples
+          for(let i = 0; i < ripples.length; i++) {
+              ripples[i].update();
+          }
+
+          renderer.render(stage);
+      }
+
+      function Ripple(x, y) {
+          // Sprite
+          this.sprite = new Sprite(loader.resources['images/map.png'].texture);
+          this.sprite.anchor.set(0.5);
+          this.sprite.skew.x = 50;
+          this.sprite.skew.y = 150;
+          this.sprite.rotation = 45;
+          this.sprite.position.set(x, y);
+          this.sprite.scale.set(0.05);
+          stage.addChild(this.sprite);
+          // Filter
+          this.filter = new PIXI.filters.DisplacementFilter(this.sprite);
+      }
+
+      Ripple.prototype.update = function() {
+          this.sprite.scale.x += 0.025;
+          this.sprite.scale.y += 0.025;
+      }
+
+      function moveDrop(drop, i) {
+          let scale = 1;
+          setInterval(() => {
+              if (drop.y < 560) {
+                  drop.y += 10;
+                  drop.alpha += 0.01;
+                  if (drop.y === 550) {
+                      // Get corresponding drop x value for ripple x value from xPosArr
+                      ripples.push(new Ripple(xPosArr[i], 550));
+                      bgStage.filters = ripples.map(function(f) { return f.filter; });
+                  }
+              } else if (drop.y === 560) {
+                  scale = scale - 0.125;
+                  drop.scale.set(scale);
+                  drop.alpha -= 0.125;
+              }
+          }, 15);
+      }
+  </script>
+</body>
+</html>
